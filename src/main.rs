@@ -27,7 +27,7 @@ mod util;
 use handle::FileHandle;
 use model::{FileRec, Header};
 use slog::Drain;
-use std::collections::LinkedList;
+use std::collections::{HashSet, LinkedList};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
