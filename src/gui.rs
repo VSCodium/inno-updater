@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *----------------------------------------------------------------------------------------*/
 
+use crate::strings::to_utf16;
 use std::sync::mpsc::Sender;
 use std::{mem, ptr};
-use crate::strings::to_utf16;
-use windows_sys::core::PCWSTR;
 use windows_sys::Win32::Foundation::{BOOL, HWND, LPARAM, WPARAM};
+use windows_sys::core::PCWSTR;
 
 // Custom message types for progress window communication
 const WM_UPDATE_STATUS: u32 = 0x0400 + 1; // WM_USER + 1
@@ -30,8 +30,8 @@ unsafe extern "system" fn dlgproc(hwnd: HWND, msg: u32, _: WPARAM, l: LPARAM) ->
 	use windows_sys::Win32::Foundation::RECT;
 	use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 	use windows_sys::Win32::UI::WindowsAndMessaging::{
-		EndDialog, GetDesktopWindow, GetWindowRect, SendDlgItemMessageW, SetDlgItemTextW,
-		SetWindowPos, HWND_TOPMOST, WM_DESTROY, WM_INITDIALOG, WM_USER,
+		EndDialog, GetDesktopWindow, GetWindowRect, HWND_TOPMOST, SendDlgItemMessageW,
+		SetDlgItemTextW, SetWindowPos, WM_DESTROY, WM_INITDIALOG, WM_USER,
 	};
 
 	unsafe {
@@ -122,7 +122,7 @@ impl ProgressWindow {
 					DIALOG_HWND,
 					WM_UPDATE_STATUS,
 					0,
-					status_utf16.as_ptr() as LPARAM
+					status_utf16.as_ptr() as LPARAM,
 				);
 			}
 		}
@@ -168,8 +168,8 @@ pub enum MessageBoxResult {
 
 pub fn message_box(text: &str, caption: &str, mbtype: MessageBoxType) -> MessageBoxResult {
 	use windows_sys::Win32::UI::WindowsAndMessaging::{
-		MessageBoxW, IDABORT, IDCANCEL, IDCONTINUE, IDIGNORE, IDNO, IDOK, IDRETRY, IDTRYAGAIN,
-		IDYES, MB_ICONERROR, MB_RETRYCANCEL, MB_SYSTEMMODAL,
+		IDABORT, IDCANCEL, IDCONTINUE, IDIGNORE, IDNO, IDOK, IDRETRY, IDTRYAGAIN, IDYES,
+		MB_ICONERROR, MB_RETRYCANCEL, MB_SYSTEMMODAL, MessageBoxW,
 	};
 
 	let result: i32;

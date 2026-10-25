@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *----------------------------------------------------------------------------------------*/
 
+use crate::strings::from_utf16;
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
 use std::{error, io, mem, thread, time};
-use crate::strings::from_utf16;
 
 pub struct RunningProcess {
 	pub name: String,
@@ -93,9 +93,7 @@ impl CapturedProcess {
 
 	fn terminate_and_wait(&self, log: &slog::Logger) -> Result<(), Box<dyn error::Error>> {
 		use windows_sys::Win32::Foundation::{WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT};
-		use windows_sys::Win32::System::Threading::{
-			TerminateProcess, WaitForSingleObject,
-		};
+		use windows_sys::Win32::System::Threading::{TerminateProcess, WaitForSingleObject};
 
 		if !self.is_running()? {
 			info!(log, "{}, pid {} has already exited", self.name, self.id);
@@ -104,9 +102,7 @@ impl CapturedProcess {
 
 		info!(
 			log,
-			"{}, pid {} is still running, attempting termination",
-			self.name,
-			self.id
+			"{}, pid {} is still running, attempting termination", self.name, self.id
 		);
 
 		let termination_handle = self.termination_handle.as_ref().ok_or_else(|| {
@@ -119,7 +115,10 @@ impl CapturedProcess {
 		if unsafe { TerminateProcess(termination_handle.handle, 0) } == 0 {
 			let err = io::Error::last_os_error();
 			if !self.is_running()? {
-				info!(log, "{}, pid {} exited before termination could be requested", self.name, self.id);
+				info!(
+					log,
+					"{}, pid {} exited before termination could be requested", self.name, self.id
+				);
 				return Ok(());
 			}
 			return Err(io::Error::new(
@@ -131,17 +130,12 @@ impl CapturedProcess {
 
 		info!(
 			log,
-			"Termination requested for {}, pid {}, waiting for exit",
-			self.name,
-			self.id
+			"Termination requested for {}, pid {}, waiting for exit", self.name, self.id
 		);
 
 		let wait_result = unsafe { WaitForSingleObject(termination_handle.handle, 30_000) };
 		if wait_result == WAIT_OBJECT_0 {
-			info!(
-				log,
-				"Confirmed {}, pid {} has exited", self.name, self.id
-			);
+			info!(log, "Confirmed {}, pid {} has exited", self.name, self.id);
 			Ok(())
 		} else if wait_result == WAIT_TIMEOUT {
 			Err(io::Error::new(
@@ -153,11 +147,7 @@ impl CapturedProcess {
 			let err = io::Error::last_os_error();
 			Err(io::Error::new(
 				err.kind(),
-				format!(
-					"Failed waiting for process {} to exit: {}",
-					self.id,
-					err
-				),
+				format!("Failed waiting for process {} to exit: {}", self.id, err),
 			)
 			.into())
 		} else {
@@ -182,7 +172,7 @@ fn paths_equal(first: &Path, second: &Path) -> bool {
 pub fn get_running_processes() -> Result<Vec<RunningProcess>, io::Error> {
 	use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
 	use windows_sys::Win32::System::Diagnostics::ToolHelp::{
-		CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+		CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
 		TH32CS_SNAPPROCESS,
 	};
 
@@ -272,9 +262,8 @@ fn get_process_path(handle: &ProcessHandle) -> io::Result<PathBuf> {
 
 	get_process_path_with_query(|raw_path| {
 		let mut len = raw_path.len() as u32;
-		if unsafe {
-			QueryFullProcessImageNameW(handle.handle, 0, raw_path.as_mut_ptr(), &mut len)
-		} == 0
+		if unsafe { QueryFullProcessImageNameW(handle.handle, 0, raw_path.as_mut_ptr(), &mut len) }
+			== 0
 		{
 			Err(io::Error::last_os_error())
 		} else {
@@ -290,44 +279,44 @@ fn capture_termination_handle(
 ) -> Option<ProcessHandle> {
 	use windows_sys::Win32::System::Threading::{PROCESS_SYNCHRONIZE, PROCESS_TERMINATE};
 
-	let termination_handle =
-		match ProcessHandle::open(process.id, PROCESS_TERMINATE | PROCESS_SYNCHRONIZE) {
-			Ok(handle) => handle,
-			Err(err) => {
-				match wait_handle.is_running() {
-					Ok(false) => info!(
-						log,
-						"{}, pid {} exited before termination access could be captured",
-						process.name,
-						process.id
-					),
-					Ok(true) => warn!(
-						log,
-						"Verified target process {}, pid {} cannot be opened for termination it will only be monitored for natural exit: {}",
-						process.name,
-						process.id,
-						err
-					),
-					Err(wait_err) => warn!(
-						log,
-						"Unable to capture termination access or check the state of verified target process {}, pid {}, it will only be monitored for natural exit. Open error: {}; state check error: {}",
-						process.name,
-						process.id,
-						err,
-						wait_err
-					),
-				}
-				return None;
+	let termination_handle = match ProcessHandle::open(
+		process.id,
+		PROCESS_TERMINATE | PROCESS_SYNCHRONIZE,
+	) {
+		Ok(handle) => handle,
+		Err(err) => {
+			match wait_handle.is_running() {
+				Ok(false) => info!(
+					log,
+					"{}, pid {} exited before termination access could be captured",
+					process.name,
+					process.id
+				),
+				Ok(true) => warn!(
+					log,
+					"Verified target process {}, pid {} cannot be opened for termination it will only be monitored for natural exit: {}",
+					process.name,
+					process.id,
+					err
+				),
+				Err(wait_err) => warn!(
+					log,
+					"Unable to capture termination access or check the state of verified target process {}, pid {}, it will only be monitored for natural exit. Open error: {}; state check error: {}",
+					process.name,
+					process.id,
+					err,
+					wait_err
+				),
 			}
-		};
+			return None;
+		}
+	};
 
 	match wait_handle.is_running() {
 		Ok(true) => {
 			info!(
 				log,
-				"Captured termination access for {}, pid {}",
-				process.name,
-				process.id
+				"Captured termination access for {}, pid {}", process.name, process.id
 			);
 			Some(termination_handle)
 		}
@@ -421,7 +410,10 @@ fn capture_process(
 	) {
 		Ok(handle) => handle,
 		Err(err) if err.raw_os_error() == Some(ERROR_INVALID_PARAMETER as i32) => {
-			info!(log, "{}, pid {} exited before it could be inspected", process.name, process.id);
+			info!(
+				log,
+				"{}, pid {} exited before it could be inspected", process.name, process.id
+			);
 			return None;
 		}
 		Err(err) => {
@@ -445,7 +437,9 @@ fn capture_process(
 
 	info!(
 		log,
-		"Found {} running as pid {}", process_path.display(), process.id
+		"Found {} running as pid {}",
+		process_path.display(),
+		process.id
 	);
 
 	if !paths_equal(&process_path, path) {
@@ -460,14 +454,15 @@ fn capture_process(
 
 	info!(
 		log,
-		"Captured {}, pid {} for exit monitoring",
-		process.name,
-		process.id
+		"Captured {}, pid {} for exit monitoring", process.name, process.id
 	);
 	let termination_handle = capture_termination_handle(log, process, &handle);
 	match handle.is_running() {
 		Ok(false) => {
-			info!(log, "{}, pid {} exited while its handles were being captured", process.name, process.id);
+			info!(
+				log,
+				"{}, pid {} exited while its handles were being captured", process.name, process.id
+			);
 			return None;
 		}
 		Ok(true) => {}
@@ -519,14 +514,20 @@ pub fn capture_running_processes(
 		.collect::<Vec<_>>();
 
 	if target_processes.is_empty() {
-		info!(log, "No running {} processes matched the update target", file_name);
+		info!(
+			log,
+			"No running {} processes matched the update target", file_name
+		);
 	} else {
 		info!(
 			log,
 			"Captured {} running {} processes: {:?}",
 			target_processes.len(),
 			file_name,
-			target_processes.iter().map(|process| process.id).collect::<Vec<_>>()
+			target_processes
+				.iter()
+				.map(|process| process.id)
+				.collect::<Vec<_>>()
 		);
 	}
 
@@ -537,12 +538,7 @@ pub fn wait_or_kill(
 	log: &slog::Logger,
 	target_processes: &[CapturedProcess],
 ) -> Result<(), Box<dyn error::Error>> {
-	wait_or_kill_with_grace(
-		log,
-		target_processes,
-		60,
-		time::Duration::from_millis(500),
-	)
+	wait_or_kill_with_grace(log, target_processes, 60, time::Duration::from_millis(500))
 }
 
 fn wait_or_kill_with_grace(
@@ -630,7 +626,10 @@ fn wait_or_kill_with_grace(
 		"Attempting best-effort termination of {} remaining {} processes: {:?}",
 		still_running.len(),
 		file_name,
-		still_running.iter().map(|process| process.id).collect::<Vec<_>>()
+		still_running
+			.iter()
+			.map(|process| process.id)
+			.collect::<Vec<_>>()
 	);
 
 	let mut termination_failures = 0;
@@ -663,14 +662,14 @@ fn wait_or_kill_with_grace(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use slog::{Drain, Logger, o};
+	use slog_term::{FullFormat, PlainDecorator};
 	use std::io::Write;
 	use std::path::PathBuf;
-	use std::process::{Command, Child};
+	use std::process::{Child, Command};
 	use std::sync::Mutex;
 	use std::thread;
 	use std::time::Duration;
-	use slog::{Logger, o, Drain};
-	use slog_term::{PlainDecorator, FullFormat};
 
 	struct TestWriter;
 
@@ -695,9 +694,7 @@ mod tests {
 	fn get_test_helper_path() -> PathBuf {
 		let profile = std::env::var("PROFILE").unwrap_or_else(|_| "debug".to_string());
 		let target_dir = std::env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| "target".to_string());
-		let target = std::env::var("TARGET").unwrap_or_else(|_| {
-			"i686-pc-windows-msvc".to_string()
-		});
+		let target = std::env::var("TARGET").unwrap_or_else(|_| "i686-pc-windows-msvc".to_string());
 
 		// Resolve target_dir to absolute path relative to project root
 		let project_root = std::env::current_dir().expect("Failed to get current directory");
@@ -855,10 +852,7 @@ mod tests {
 
 		let log = setup_test_logger();
 		let process = path_query_test_process();
-		for (error, expected_timeout) in [
-			(ERROR_ACCESS_DENIED, 1_000),
-			(ERROR_PARTIAL_COPY, 0),
-		] {
+		for (error, expected_timeout) in [(ERROR_ACCESS_DENIED, 1_000), (ERROR_PARTIAL_COPY, 0)] {
 			let mut observed_timeout = None;
 			let result = get_process_path_or_skip(
 				&log,
@@ -945,10 +939,7 @@ mod tests {
 		})
 		.unwrap_err();
 
-		assert_eq!(
-			error.raw_os_error(),
-			Some(ERROR_INSUFFICIENT_BUFFER as i32)
-		);
+		assert_eq!(error.raw_os_error(), Some(ERROR_INSUFFICIENT_BUFFER as i32));
 		assert_eq!(capacities.first(), Some(&260));
 		assert_eq!(capacities.last(), Some(&MAX_PROCESS_PATH_LENGTH));
 		assert!(capacities.windows(2).all(|pair| pair[0] < pair[1]));
@@ -980,7 +971,10 @@ mod tests {
 		let fake_path = PathBuf::from("C:\\nonexistent\\fake_process.exe");
 		let processes = capture_running_processes(&log, &fake_path).unwrap();
 		let result = wait_or_kill(&log, &processes);
-		assert!(result.is_ok(), "Should succeed when no processes are running");
+		assert!(
+			result.is_ok(),
+			"Should succeed when no processes are running"
+		);
 	}
 
 	#[test]
@@ -994,10 +988,17 @@ mod tests {
 			"Natural-exit test process should start and be visible"
 		);
 		let processes = capture_running_processes(&log, &process_path).unwrap();
-		assert_eq!(processes.len(), 1, "Should capture only the natural-exit test process");
+		assert_eq!(
+			processes.len(),
+			1,
+			"Should capture only the natural-exit test process"
+		);
 		let result = wait_or_kill(&log, &processes);
 		child.wait();
-		assert!(result.is_ok(), "Should succeed when process exits naturally");
+		assert!(
+			result.is_ok(),
+			"Should succeed when process exits naturally"
+		);
 	}
 
 	#[test]
@@ -1006,7 +1007,12 @@ mod tests {
 		let path = PathBuf::from("");
 		let result = capture_running_processes(&log, &path);
 		assert!(result.is_err(), "Should fail with invalid path");
-		assert!(result.unwrap_err().to_string().contains("Could not get process file name"));
+		assert!(
+			result
+				.unwrap_err()
+				.to_string()
+				.contains("Could not get process file name")
+		);
 	}
 
 	#[test]
@@ -1025,13 +1031,23 @@ mod tests {
 			.iter()
 			.filter(|process| process.name == executable_name)
 			.count();
-		assert_eq!(test_helper_count, 2, "Should have exactly 2 isolated test processes");
+		assert_eq!(
+			test_helper_count, 2,
+			"Should have exactly 2 isolated test processes"
+		);
 		let processes = capture_running_processes(&log, &process_path).unwrap();
-		assert_eq!(processes.len(), 2, "Should capture exactly the two isolated test processes");
+		assert_eq!(
+			processes.len(),
+			2,
+			"Should capture exactly the two isolated test processes"
+		);
 		let result = wait_or_kill_with_grace(&log, &processes, 1, Duration::ZERO);
 		child1.wait();
 		child2.wait();
-		assert!(result.is_ok(), "Should succeed when killing multiple processes");
+		assert!(
+			result.is_ok(),
+			"Should succeed when killing multiple processes"
+		);
 	}
 
 	#[test]
@@ -1046,11 +1062,19 @@ mod tests {
 			"Rename test process should start and be visible"
 		);
 		let processes = capture_running_processes(&log, &process_path).unwrap();
-		assert_eq!(processes.len(), 1, "Should capture the test process before renaming");
+		assert_eq!(
+			processes.len(),
+			1,
+			"Should capture the test process before renaming"
+		);
 
-		std::fs::rename(&process_path, &renamed_process_path).expect("Failed to rename running test process");
+		std::fs::rename(&process_path, &renamed_process_path)
+			.expect("Failed to rename running test process");
 		let result = wait_or_kill_with_grace(&log, &processes, 1, Duration::ZERO);
 		child.wait();
-		assert!(result.is_ok(), "Should kill and await the captured process after its executable is renamed");
+		assert!(
+			result.is_ok(),
+			"Should kill and await the captured process after its executable is renamed"
+		);
 	}
 }

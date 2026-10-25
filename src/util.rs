@@ -4,8 +4,8 @@
  *----------------------------------------------------------------------------------------*/
 
 use crate::gui;
-use std::{error, ptr, thread, time};
 use crate::strings::from_utf16;
+use std::{error, ptr, thread, time};
 
 /// Quadratic backoff retry mechanism.
 ///
@@ -32,7 +32,10 @@ where
 			Ok(_) => return result,
 			Err(err) => {
 				if attempt >= max_attempts {
-					let msg = format!("There was an error while {}:\n\n{}\n\nPlease verify there are no Visual Studio Code processes still executing.", task, err);
+					let msg = format!(
+						"There was an error while {}:\n\n{}\n\nPlease verify there are no Visual Studio Code processes still executing.",
+						task, err
+					);
 					let mb_result = gui::message_box(
 						&msg,
 						"Visual Studio Code - Updater",
@@ -58,7 +61,7 @@ where
 pub fn get_last_error_message() -> Result<String, Box<dyn error::Error>> {
 	use windows_sys::Win32::Foundation::GetLastError;
 	use windows_sys::Win32::System::Diagnostics::Debug::{
-		FormatMessageW, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
+		FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS, FormatMessageW,
 	};
 
 	let mut error_message = [0u16; 32000];
