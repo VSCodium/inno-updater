@@ -1,71 +1,10 @@
-# inno-updater
+inno-updater
+============
 
-[![Build Status](https://dev.azure.com/monacotools/Monaco/_apis/build/status%2FMisc%2Finno-updater?repoName=microsoft%2Finno-updater&branchName=main)](https://dev.azure.com/monacotools/Monaco/_build/latest?definitionId=623&repoName=microsoft%2Finno-updater&branchName=main)
+## <a id="fork"></a>Why fork from microsoft/inno-updater
 
-Helper utility to enable background updates for VS Code in Windows
+The purpose of the fork is to restore the legacy updater used when vscode isn't configured with versioned update.
 
-- https://github.com/Microsoft/vscode
-- https://code.visualstudio.com/
+## <a id="license"></a>License
 
-## Integration
-
-⭐️ To create a new release, simply push a new tag; this will kick off a [build](https://dev.azure.com/vscode/Inno%20Updater/_build?definitionId=25&_a=summary) and publish a [release](https://github.com/microsoft/inno-updater/releases).
-
-⭐️ To integrate a release of `inno-updater` in VS Code, simply extract the release archive to [`build/win32`](https://github.com/microsoft/vscode/tree/main/build/win32).
-
-## Development
-
-### Process capture
-
-Before replacing the executable, the updater captures matching processes using limited query
-rights and retains separate handles for waiting and best-effort termination. A denied image path
-query gets a one second grace period because Windows can deny queries briefly while a process is
-exiting. Processes that remain inaccessible, cannot be identified, or cannot be terminated are
-logged and skipped rather than failing the update.
-
-Run the process tests on Windows:
-
-```powershell
-cargo test --locked --bin inno_updater --target i686-pc-windows-msvc process::tests
-```
-
-To inspect process logs in execution order, run the tests serially with output capture disabled:
-
-```powershell
-cargo test --locked --bin inno_updater --target i686-pc-windows-msvc process::tests -- --test-threads=1 --nocapture
-```
-
-### AddressSanitizer (ASAN)
-
-**One-time setup:**
-
-```powershell
-.\scripts\test-asan.ps1 -Install
-```
-
-This installs:
-- Rust nightly toolchain with `x86_64-pc-windows-msvc` target
-- `rust-src` component for `-Zbuild-std`
-- C++ AddressSanitizer component via Visual Studio Installer
-
-**Running ASAN tests:**
-
-```powershell
-.\scripts\test-asan.ps1
-```
-
-Use `-Verbose` for detailed output.
-
-## Contributing
-
-This project welcomes contributions and suggestions. Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.microsoft.com.
-
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+[MIT](https://github.com/VSCodium/inno-updater/blob/master/LICENSE)
