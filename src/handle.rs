@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *----------------------------------------------------------------------------------------*/
 
+use crate::strings::to_u16s;
+use crate::util;
 use std::ffi::c_void;
 use std::path::Path;
 use std::{error, io, ptr};
-use crate::strings::to_u16s;
-use crate::util;
 use windows_sys::Win32::Foundation::HANDLE;
 
 pub struct FileHandle(HANDLE);
@@ -43,7 +43,7 @@ impl FileHandle {
 		use std::mem;
 		use windows_sys::Win32::Foundation::BOOLEAN;
 		use windows_sys::Win32::Storage::FileSystem::{
-			FileDispositionInfo, SetFileInformationByHandle, FILE_DISPOSITION_INFO,
+			FILE_DISPOSITION_INFO, FileDispositionInfo, SetFileInformationByHandle,
 		};
 
 		unsafe {

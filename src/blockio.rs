@@ -4,7 +4,7 @@
  *----------------------------------------------------------------------------------------*/
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use crc::{Crc, CRC_32_ISO_HDLC};
+use crc::{CRC_32_ISO_HDLC, Crc};
 use std::io::prelude::*;
 use std::{cmp, io};
 

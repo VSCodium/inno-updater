@@ -11,9 +11,9 @@ extern crate crc;
 extern crate slog;
 extern crate slog_async;
 extern crate slog_term;
-extern crate windows_sys;
 #[cfg(test)]
 extern crate tempfile;
+extern crate windows_sys;
 
 mod blockio;
 mod gui;
@@ -398,7 +398,10 @@ fn update(
 
 	// 2) Get the basename and dirname of code_path
 	let dir_path = code_path.parent().ok_or_else(|| {
-		io::Error::new(io::ErrorKind::Other, "Could not get parent directory of code_path")
+		io::Error::new(
+			io::ErrorKind::Other,
+			"Could not get parent directory of code_path",
+		)
 	})?;
 
 	let basename = code_path.file_name().ok_or_else(|| {
@@ -414,8 +417,13 @@ fn update(
 	let old_exe_path = dir_path.join(&old_exe_filename);
 	let new_exe_path = dir_path.join(&new_exe_filename);
 
-	info!(log, "Starting rename process: code_path={:?}, old_exe_path={:?}, new_exe_path={:?}", 
-		code_path, old_exe_path, new_exe_path);
+	info!(
+		log,
+		"Starting rename process: code_path={:?}, old_exe_path={:?}, new_exe_path={:?}",
+		code_path,
+		old_exe_path,
+		new_exe_path
+	);
 
 	// 4) Check for the presence of new_exe_filename and proceed with renaming
 	if new_exe_path.exists() {
@@ -435,7 +443,8 @@ fn update(
 						let file_name_str = file_name.to_string_lossy();
 
 						// Skip files that already have old_ or new_ prefix
-						if !file_name_str.starts_with("old_") && !file_name_str.starts_with("new_") {
+						if !file_name_str.starts_with("old_") && !file_name_str.starts_with("new_")
+						{
 							bin_files.push(file_name.to_string_lossy().to_string());
 						}
 					}
@@ -459,7 +468,7 @@ fn update(
 						Ok(_) => {
 							// Track this file was successfully renamed
 							renamed_files.push(file_name);
-						},
+						}
 						Err(err) => {
 							error!(log, "Bin file update failed for {:?}: {}", file_name, err);
 							// Continue to next file, don't rollback everything yet
@@ -469,9 +478,16 @@ fn update(
 				}
 			}
 
-			info!(log, "Bin directory processing complete. Successfully renamed {} files", renamed_files.len());
+			info!(
+				log,
+				"Bin directory processing complete. Successfully renamed {} files",
+				renamed_files.len()
+			);
 		} else {
-			info!(log, "Bin directory does not exist, skipping bin file processing");
+			info!(
+				log,
+				"Bin directory does not exist, skipping bin file processing"
+			);
 		}
 
 		// Perform three-way rename for the main executable
@@ -506,7 +522,12 @@ fn update(
 		if new_manifest_path.exists() {
 			window.update_status("Renaming manifest file...");
 			info!(log, "Found new manifest file: {:?}", new_manifest_path);
-			if let Err(err) = perform_three_way_rename(log, &manifest_path, &old_manifest_path, &new_manifest_path) {
+			if let Err(err) = perform_three_way_rename(
+				log,
+				&manifest_path,
+				&old_manifest_path,
+				&new_manifest_path,
+			) {
 				error!(log, "Manifest file update failed: {}", err);
 			} else {
 				info!(log, "Successfully updated manifest file");
@@ -524,7 +545,9 @@ fn update(
 			if new_proxy_path.exists() {
 				window.update_status("Renaming proxy executable...");
 				info!(log, "Found new proxy executable: {:?}", new_proxy_path);
-				if let Err(err) = perform_three_way_rename(log, &proxy_path, &old_proxy_path, &new_proxy_path) {
+				if let Err(err) =
+					perform_three_way_rename(log, &proxy_path, &old_proxy_path, &new_proxy_path)
+				{
 					error!(log, "Proxy executable update failed: {}", err);
 				} else {
 					info!(log, "Successfully updated proxy executable");
@@ -533,7 +556,10 @@ fn update(
 				info!(log, "No new proxy executable found: {:?}", new_proxy_path);
 			}
 		} else {
-			info!(log, "No proxy exe name provided, skipping proxy executable rename");
+			info!(
+				log,
+				"No proxy exe name provided, skipping proxy executable rename"
+			);
 		}
 
 		window.update_status("Attempting to stop current running application...");
@@ -542,9 +568,17 @@ fn update(
 		// If a commit argument was provided, attempt to remove files not associated with that commit
 		if let Some(ref commit_str) = commit {
 			window.update_status("Cleaning up old files...");
-			info!(log, "Commit specified: {} - attempting to remove files", commit_str);
-			if let Err(err) = remove_files(log, code_path, commit_str, None, proxy_exe_name.as_deref()) {
-				warn!(log, "Failed to remove files for commit {}: {}", commit_str, err);
+			info!(
+				log,
+				"Commit specified: {} - attempting to remove files", commit_str
+			);
+			if let Err(err) =
+				remove_files(log, code_path, commit_str, None, proxy_exe_name.as_deref())
+			{
+				warn!(
+					log,
+					"Failed to remove files for commit {}: {}", commit_str, err
+				);
 			} else {
 				info!(log, "Removed files for commit {}", commit_str);
 			}
@@ -561,7 +595,10 @@ fn update(
 		window.update_status("Update completed successfully!");
 		info!(log, "Update completed successfully");
 	} else {
-		info!(log, "New executable not found: {:?}, using traditional update method", new_exe_path);
+		info!(
+			log,
+			"New executable not found: {:?}, using traditional update method", new_exe_path
+		);
 		// Fall back to the original update method if no new executable is found
 		do_update(log, code_path, update_folder_name)?;
 	}
@@ -626,7 +663,15 @@ fn _main(log: &slog::Logger, args: &[String]) -> Result<(), Box<dyn error::Error
 		None
 	};
 
-	update(log, &code_path, "_", silent == "true", label, None, proxy_exe_name)
+	update(
+		log,
+		&code_path,
+		"_",
+		silent == "true",
+		label,
+		None,
+		proxy_exe_name,
+	)
 }
 
 fn handle_error(log_path: &str) {
@@ -693,7 +738,10 @@ fn perform_three_way_rename(
 
 	// Step 1: If new file exists and current file exists, rename current to old
 	if new_path.exists() && current_path.exists() {
-		info!(log, "Renaming current to old: {:?} -> {:?}", current_path, &old_path);
+		info!(
+			log,
+			"Renaming current to old: {:?} -> {:?}", current_path, &old_path
+		);
 		if let Err(err) = fs::rename(current_path, &old_path) {
 			error!(
 				log,
@@ -725,13 +773,22 @@ fn perform_three_way_rename(
 	}
 
 	// Step 2: Rename new to current
-	info!(log, "Renaming new to current: {:?} -> {:?}", new_path, current_path);
+	info!(
+		log,
+		"Renaming new to current: {:?} -> {:?}", new_path, current_path
+	);
 	if let Err(err) = fs::rename(new_path, current_path) {
-		error!(log, "Failed to rename new to current, attempting to restore old: {}", err);
+		error!(
+			log,
+			"Failed to rename new to current, attempting to restore old: {}", err
+		);
 
 		// Restore old file if the operation fails and old file exists
 		if old_path.exists() {
-			info!(log, "Restoring old file: {:?} -> {:?}", old_path, current_path);
+			info!(
+				log,
+				"Restoring old file: {:?} -> {:?}", old_path, current_path
+			);
 			if let Err(restore_err) = fs::rename(&old_path, current_path) {
 				error!(log, "Failed to restore old file: {}", restore_err);
 			}
@@ -773,10 +830,7 @@ fn find_available_old_path(old_path: &Path) -> Result<PathBuf, Box<dyn error::Er
 	unreachable!()
 }
 
-fn cleanup_dll_files(
-	log: &slog::Logger,
-	code_path: &Path,
-) -> Result<(), Box<dyn error::Error>> {
+fn cleanup_dll_files(log: &slog::Logger, code_path: &Path) -> Result<(), Box<dyn error::Error>> {
 	info!(log, "cleanup_dll_files: {:?}", code_path);
 
 	let dir_path = code_path.parent().ok_or_else(|| {
@@ -793,7 +847,10 @@ fn cleanup_dll_files(
 		return Ok(());
 	}
 
-	info!(log, "ffmpeg.dll found at {:?}, removing all DLL files from directory", ffmpeg_path);
+	info!(
+		log,
+		"ffmpeg.dll found at {:?}, removing all DLL files from directory", ffmpeg_path
+	);
 
 	let mut file_handles_to_remove: LinkedList<FileHandle> = LinkedList::new();
 
@@ -833,7 +890,11 @@ fn cleanup_dll_files(
 		return Ok(());
 	}
 
-	info!(log, "Collected {} DLL file handles for removal", file_handles_to_remove.len());
+	info!(
+		log,
+		"Collected {} DLL file handles for removal",
+		file_handles_to_remove.len()
+	);
 
 	for file_handle in &file_handles_to_remove {
 		util::retry(
@@ -902,8 +963,14 @@ fn remove_files(
 	main_exe_name: Option<&str>,
 	proxy_exe_name: Option<&str>,
 ) -> Result<(), Box<dyn error::Error>> {
-	info!(log, "remove_files: {:?}, commit: {}, main_exe: {:?}, proxy_exe: {:?}",
-		code_path, commit_to_preserve, main_exe_name, proxy_exe_name);
+	info!(
+		log,
+		"remove_files: {:?}, commit: {}, main_exe: {:?}, proxy_exe: {:?}",
+		code_path,
+		commit_to_preserve,
+		main_exe_name,
+		proxy_exe_name
+	);
 
 	let base_dir = code_path.parent().ok_or_else(|| {
 		io::Error::new(
@@ -913,14 +980,13 @@ fn remove_files(
 	})?;
 
 	let code_basename = code_path.file_name().ok_or_else(|| {
-		io::Error::new(
-			io::ErrorKind::Other,
-			"Could not get basename of code_path",
-		)
+		io::Error::new(io::ErrorKind::Other, "Could not get basename of code_path")
 	})?;
 
 	let code_basename_str = code_basename.to_string_lossy();
-	let basename_without_ext = code_basename_str.strip_suffix(".exe").unwrap_or(&code_basename_str);
+	let basename_without_ext = code_basename_str
+		.strip_suffix(".exe")
+		.unwrap_or(&code_basename_str);
 	let manifest_filename = format!("{}.VisualElementsManifest.xml", basename_without_ext);
 	let proxy_filename: Option<&str> = proxy_exe_name.filter(|s| !s.is_empty());
 
@@ -940,7 +1006,7 @@ fn remove_files(
 		let entry_file_type = entry.file_type()?;
 		let entry_path = entry.path();
 
-		let should_skip = 
+		let should_skip =
 			// Skip deleting code_path executable
 			if entry_path == code_path {
 				info!(log, "Skipping code_path executable: {:?}", entry_path);
@@ -983,14 +1049,14 @@ fn remove_files(
 			// Special handling for bin directory (Rule 3)
 			if entry_name == "bin" {
 				info!(log, "Processing bin directory: {:?}", entry_path);
-				
+
 				// Process files in bin directory
 				for bin_entry in fs::read_dir(&entry_path)? {
 					let bin_entry = bin_entry?;
 					let bin_entry_name = bin_entry.file_name();
-					let bin_entry_name = bin_entry_name
-						.to_str()
-						.ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not get bin entry name"))?;
+					let bin_entry_name = bin_entry_name.to_str().ok_or_else(|| {
+						io::Error::new(io::ErrorKind::Other, "Could not get bin entry name")
+					})?;
 
 					let bin_entry_file_type = bin_entry.file_type()?;
 					let bin_entry_path = bin_entry.path();
@@ -1022,7 +1088,10 @@ fn remove_files(
 		}
 	}
 
-	info!(log, "Collected all directories and file handles for removal");
+	info!(
+		log,
+		"Collected all directories and file handles for removal"
+	);
 
 	for file_handle in &file_handles_to_remove {
 		util::retry(
@@ -1070,7 +1139,8 @@ fn remove_files(
 						warn!(
 							log,
 							"Skipping locked directory during gc, will retry on next update: {:?}: {}",
-							dir, err
+							dir,
+							err
 						);
 						Ok(())
 					}
@@ -1087,362 +1157,446 @@ fn remove_files(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::fs;
-    use std::io::Write;
-    use std::sync::Mutex;
-    use tempfile::tempdir;
-    use slog::{Drain, Logger, o};
-    use slog_term::{FullFormat, PlainDecorator};
+	use super::*;
+	use slog::{Drain, Logger, o};
+	use slog_term::{FullFormat, PlainDecorator};
+	use std::fs;
+	use std::io::Write;
+	use std::sync::Mutex;
+	use tempfile::tempdir;
 
-    struct TestWriter;
+	struct TestWriter;
 
-    impl Write for TestWriter {
-        fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-            eprint!("{}", String::from_utf8_lossy(buffer));
-            Ok(buffer.len())
-        }
+	impl Write for TestWriter {
+		fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+			eprint!("{}", String::from_utf8_lossy(buffer));
+			Ok(buffer.len())
+		}
 
-        fn flush(&mut self) -> io::Result<()> {
-            Ok(())
-        }
-    }
+		fn flush(&mut self) -> io::Result<()> {
+			Ok(())
+		}
+	}
 
-    // Helper function to set up a test logger
-    fn setup_test_logger() -> Logger {
-        let decorator = PlainDecorator::new(TestWriter);
-        let drain = FullFormat::new(decorator).build().fuse();
-        let drain = Mutex::new(drain).fuse();
-        Logger::root(drain, o!())
-    }
+	// Helper function to set up a test logger
+	fn setup_test_logger() -> Logger {
+		let decorator = PlainDecorator::new(TestWriter);
+		let drain = FullFormat::new(decorator).build().fuse();
+		let drain = Mutex::new(drain).fuse();
+		Logger::root(drain, o!())
+	}
 
-    #[test]
-    fn test_perform_three_way_rename_basic() {
-        // Create a temporary directory for our test
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
+	#[test]
+	fn test_perform_three_way_rename_basic() {
+		// Create a temporary directory for our test
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
 
-        // Set up our test paths
-        let current_path = temp_dir.path().join("current.txt");
-        let old_path = temp_dir.path().join("old_current.txt");
-        let new_path = temp_dir.path().join("new_current.txt");
+		// Set up our test paths
+		let current_path = temp_dir.path().join("current.txt");
+		let old_path = temp_dir.path().join("old_current.txt");
+		let new_path = temp_dir.path().join("new_current.txt");
 
-        // Create test files
-        fs::write(&current_path, "current content").unwrap();
-        fs::write(&new_path, "new content").unwrap();
+		// Create test files
+		fs::write(&current_path, "current content").unwrap();
+		fs::write(&new_path, "new content").unwrap();
 
-        // Perform the rename operation
-        let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
+		// Perform the rename operation
+		let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
 
-        // Verify results
-        assert!(result.is_ok(), "Rename operation should succeed");
-        assert!(current_path.exists(), "Current file should exist");
-        assert!(!new_path.exists(), "New file should be renamed");
-        assert!(old_path.exists(), "Old file should exist");
+		// Verify results
+		assert!(result.is_ok(), "Rename operation should succeed");
+		assert!(current_path.exists(), "Current file should exist");
+		assert!(!new_path.exists(), "New file should be renamed");
+		assert!(old_path.exists(), "Old file should exist");
 
-        // Verify content
-        let current_content = fs::read_to_string(&current_path).unwrap();
-        let old_content = fs::read_to_string(&old_path).unwrap();
-        assert_eq!(current_content, "new content", "Current file should contain new content");
-        assert_eq!(old_content, "current content", "Old file should contain original content");
-    }
+		// Verify content
+		let current_content = fs::read_to_string(&current_path).unwrap();
+		let old_content = fs::read_to_string(&old_path).unwrap();
+		assert_eq!(
+			current_content, "new content",
+			"Current file should contain new content"
+		);
+		assert_eq!(
+			old_content, "current content",
+			"Old file should contain original content"
+		);
+	}
 
-    #[test]
-    fn test_perform_three_way_rename_preserves_existing_old_file() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
-        let current_path = temp_dir.path().join("current.txt");
-        let old_path = temp_dir.path().join("old_current.txt");
-        let new_path = temp_dir.path().join("new_current.txt");
-        let available_old_path = temp_dir.path().join("old_1_current.txt");
+	#[test]
+	fn test_perform_three_way_rename_preserves_existing_old_file() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
+		let current_path = temp_dir.path().join("current.txt");
+		let old_path = temp_dir.path().join("old_current.txt");
+		let new_path = temp_dir.path().join("new_current.txt");
+		let available_old_path = temp_dir.path().join("old_1_current.txt");
 
-        fs::write(&current_path, "current content").unwrap();
-        fs::write(&old_path, "previous old content").unwrap();
-        fs::write(&new_path, "new content").unwrap();
+		fs::write(&current_path, "current content").unwrap();
+		fs::write(&old_path, "previous old content").unwrap();
+		fs::write(&new_path, "new content").unwrap();
 
-        let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
+		let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
 
-        assert!(result.is_ok(), "Rename operation should succeed");
-        assert_eq!(fs::read_to_string(&current_path).unwrap(), "new content");
-        assert_eq!(fs::read_to_string(&old_path).unwrap(), "previous old content");
-        assert_eq!(fs::read_to_string(&available_old_path).unwrap(), "current content");
-    }
+		assert!(result.is_ok(), "Rename operation should succeed");
+		assert_eq!(fs::read_to_string(&current_path).unwrap(), "new content");
+		assert_eq!(
+			fs::read_to_string(&old_path).unwrap(),
+			"previous old content"
+		);
+		assert_eq!(
+			fs::read_to_string(&available_old_path).unwrap(),
+			"current content"
+		);
+	}
 
-    #[test]
-    fn test_perform_three_way_rename_no_current_file() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
+	#[test]
+	fn test_perform_three_way_rename_no_current_file() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
 
-        let current_path = temp_dir.path().join("current.txt");
-        let old_path = temp_dir.path().join("old_current.txt");
-        let new_path = temp_dir.path().join("new_current.txt");
+		let current_path = temp_dir.path().join("current.txt");
+		let old_path = temp_dir.path().join("old_current.txt");
+		let new_path = temp_dir.path().join("new_current.txt");
 
-        // Only create the new file (no current file)
-        fs::write(&new_path, "new content").unwrap();
+		// Only create the new file (no current file)
+		fs::write(&new_path, "new content").unwrap();
 
-        // Perform the rename operation
-        let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
+		// Perform the rename operation
+		let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
 
-        // Verify results
-        assert!(result.is_ok(), "Rename operation should succeed even without current file");
-        assert!(current_path.exists(), "Current file should exist after rename");
-        assert!(!new_path.exists(), "New file should be renamed");
-        assert!(!old_path.exists(), "Old file should not exist as there was no current file");
+		// Verify results
+		assert!(
+			result.is_ok(),
+			"Rename operation should succeed even without current file"
+		);
+		assert!(
+			current_path.exists(),
+			"Current file should exist after rename"
+		);
+		assert!(!new_path.exists(), "New file should be renamed");
+		assert!(
+			!old_path.exists(),
+			"Old file should not exist as there was no current file"
+		);
 
-        // Verify content
-        let current_content = fs::read_to_string(&current_path).unwrap();
-        assert_eq!(current_content, "new content", "Current file should contain new content");
-    }
+		// Verify content
+		let current_content = fs::read_to_string(&current_path).unwrap();
+		assert_eq!(
+			current_content, "new content",
+			"Current file should contain new content"
+		);
+	}
 
-    #[test]
-    fn test_perform_three_way_rename_no_new_file() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
+	#[test]
+	fn test_perform_three_way_rename_no_new_file() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
 
-        let current_path = temp_dir.path().join("current.txt");
-        let old_path = temp_dir.path().join("old_current.txt");
-        let new_path = temp_dir.path().join("new_current.txt");
+		let current_path = temp_dir.path().join("current.txt");
+		let old_path = temp_dir.path().join("old_current.txt");
+		let new_path = temp_dir.path().join("new_current.txt");
 
-        // Only create the current file (no new file)
-        fs::write(&current_path, "current content").unwrap();
+		// Only create the current file (no new file)
+		fs::write(&current_path, "current content").unwrap();
 
-        // Perform the rename operation
-        let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
+		// Perform the rename operation
+		let result = perform_three_way_rename(&log, &current_path, &old_path, &new_path);
 
-        // Verify results
-        assert!(result.is_ok(), "Rename operation should return Ok when there's no new file");
-        assert!(current_path.exists(), "Current file should still exist");
-        assert!(!old_path.exists(), "Old file should not exist as rename wasn't needed");
+		// Verify results
+		assert!(
+			result.is_ok(),
+			"Rename operation should return Ok when there's no new file"
+		);
+		assert!(current_path.exists(), "Current file should still exist");
+		assert!(
+			!old_path.exists(),
+			"Old file should not exist as rename wasn't needed"
+		);
 
-        // Verify content is unchanged
-        let current_content = fs::read_to_string(&current_path).unwrap();
-        assert_eq!(current_content, "current content", "Current file should be unchanged");
-    }
+		// Verify content is unchanged
+		let current_content = fs::read_to_string(&current_path).unwrap();
+		assert_eq!(
+			current_content, "current content",
+			"Current file should be unchanged"
+		);
+	}
 
-    #[test]
-    fn test_remove_files_basic() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
-        let base_dir = temp_dir.path();
+	#[test]
+	fn test_remove_files_basic() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
+		let base_dir = temp_dir.path();
 
-        // Create test structure
-        let code_path = base_dir.join("Code.exe");
-        let manifest_path = base_dir.join("Code.VisualElementsManifest.xml");
-        let proxy_path = base_dir.join("Sessions.exe");
-        let commit_dir = base_dir.join("abc123");
-        let bin_dir = base_dir.join("bin");
-        let unins_file = base_dir.join("unins000.dat");
-        let some_file = base_dir.join("somefile.txt");
+		// Create test structure
+		let code_path = base_dir.join("Code.exe");
+		let manifest_path = base_dir.join("Code.VisualElementsManifest.xml");
+		let proxy_path = base_dir.join("Sessions.exe");
+		let commit_dir = base_dir.join("abc123");
+		let bin_dir = base_dir.join("bin");
+		let unins_file = base_dir.join("unins000.dat");
+		let some_file = base_dir.join("somefile.txt");
 		let other_dir = base_dir.join("otherdir");
 
-        // Create files and directories
-        fs::write(&code_path, "executable content").unwrap();
-        fs::write(&manifest_path, "manifest content").unwrap();
-        fs::write(&proxy_path, "proxy executable content").unwrap();
-        fs::create_dir(&commit_dir).unwrap();
-        fs::write(commit_dir.join("commit_file.txt"), "commit content").unwrap();
-        fs::create_dir(&bin_dir).unwrap();
-        fs::write(bin_dir.join("old_binary.exe"), "old binary").unwrap();
-        fs::write(bin_dir.join("new_binary.exe"), "new binary").unwrap();
-        fs::write(&unins_file, "uninstall data").unwrap();
-        fs::write(&some_file, "some file content").unwrap();
+		// Create files and directories
+		fs::write(&code_path, "executable content").unwrap();
+		fs::write(&manifest_path, "manifest content").unwrap();
+		fs::write(&proxy_path, "proxy executable content").unwrap();
+		fs::create_dir(&commit_dir).unwrap();
+		fs::write(commit_dir.join("commit_file.txt"), "commit content").unwrap();
+		fs::create_dir(&bin_dir).unwrap();
+		fs::write(bin_dir.join("old_binary.exe"), "old binary").unwrap();
+		fs::write(bin_dir.join("new_binary.exe"), "new binary").unwrap();
+		fs::write(&unins_file, "uninstall data").unwrap();
+		fs::write(&some_file, "some file content").unwrap();
 		fs::create_dir(&other_dir).unwrap();
-        fs::write(other_dir.join("other_file.txt"), "other content").unwrap();
+		fs::write(other_dir.join("other_file.txt"), "other content").unwrap();
 
-        // Perform the remove operation
-        let result = remove_files(&log, &code_path, "abc123", None, Some("Sessions.exe"));
+		// Perform the remove operation
+		let result = remove_files(&log, &code_path, "abc123", None, Some("Sessions.exe"));
 
-        assert!(result.is_ok(), "Remove operation should succeed");
-        assert!(code_path.exists(), "Code executable should be preserved");
-        assert!(manifest_path.exists(), "VisualElementsManifest.xml should be preserved");
-        assert!(proxy_path.exists(), "Sessions.exe proxy should be preserved");
-        assert!(commit_dir.exists(), "Commit directory should be preserved");
-        assert!(commit_dir.join("commit_file.txt").exists(), "Files in commit dir should be preserved");
-        assert!(unins_file.exists(), "Unins files should be preserved");
-		assert!(bin_dir.join("new_binary.exe").exists(), "Non-old files in bin should be preserved");
+		assert!(result.is_ok(), "Remove operation should succeed");
+		assert!(code_path.exists(), "Code executable should be preserved");
+		assert!(
+			manifest_path.exists(),
+			"VisualElementsManifest.xml should be preserved"
+		);
+		assert!(
+			proxy_path.exists(),
+			"Sessions.exe proxy should be preserved"
+		);
+		assert!(commit_dir.exists(), "Commit directory should be preserved");
+		assert!(
+			commit_dir.join("commit_file.txt").exists(),
+			"Files in commit dir should be preserved"
+		);
+		assert!(unins_file.exists(), "Unins files should be preserved");
+		assert!(
+			bin_dir.join("new_binary.exe").exists(),
+			"Non-old files in bin should be preserved"
+		);
 
-
-        assert!(!some_file.exists(), "Random files should be deleted");
-        assert!(!bin_dir.join("old_binary.exe").exists(), "Old files in bin should be deleted");
+		assert!(!some_file.exists(), "Random files should be deleted");
+		assert!(
+			!bin_dir.join("old_binary.exe").exists(),
+			"Old files in bin should be deleted"
+		);
 		assert!(!other_dir.exists(), "Other directories should be deleted");
-    }
+	}
 
-    #[test]
-    fn test_remove_files_insiders_with_proxy() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
-        let base_dir = temp_dir.path();
+	#[test]
+	fn test_remove_files_insiders_with_proxy() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
+		let base_dir = temp_dir.path();
 
-        // Create test structure for Insiders flavor
-        let code_path = base_dir.join("Code - Insiders.exe");
-        let manifest_path = base_dir.join("Code - Insiders.VisualElementsManifest.xml");
-        let proxy_path = base_dir.join("Sessions - Insiders.exe");
-        let commit_dir = base_dir.join("abc123");
-        let some_file = base_dir.join("somefile.txt");
+		// Create test structure for Insiders flavor
+		let code_path = base_dir.join("Code - Insiders.exe");
+		let manifest_path = base_dir.join("Code - Insiders.VisualElementsManifest.xml");
+		let proxy_path = base_dir.join("Sessions - Insiders.exe");
+		let commit_dir = base_dir.join("abc123");
+		let some_file = base_dir.join("somefile.txt");
 
-        // Create files and directories
-        fs::write(&code_path, "executable content").unwrap();
-        fs::write(&manifest_path, "manifest content").unwrap();
-        fs::write(&proxy_path, "proxy executable content").unwrap();
-        fs::create_dir(&commit_dir).unwrap();
-        fs::write(commit_dir.join("commit_file.txt"), "commit content").unwrap();
-        fs::write(&some_file, "some file content").unwrap();
+		// Create files and directories
+		fs::write(&code_path, "executable content").unwrap();
+		fs::write(&manifest_path, "manifest content").unwrap();
+		fs::write(&proxy_path, "proxy executable content").unwrap();
+		fs::create_dir(&commit_dir).unwrap();
+		fs::write(commit_dir.join("commit_file.txt"), "commit content").unwrap();
+		fs::write(&some_file, "some file content").unwrap();
 
-        // Perform the remove operation
-        let result = remove_files(&log, &code_path, "abc123", None, Some("Sessions - Insiders.exe"));
+		// Perform the remove operation
+		let result = remove_files(
+			&log,
+			&code_path,
+			"abc123",
+			None,
+			Some("Sessions - Insiders.exe"),
+		);
 
-        assert!(result.is_ok(), "Remove operation should succeed");
-        assert!(code_path.exists(), "Code - Insiders.exe should be preserved");
-        assert!(manifest_path.exists(), "Code - Insiders.VisualElementsManifest.xml should be preserved");
-        assert!(proxy_path.exists(), "Sessions - Insiders.exe proxy should be preserved");
-        assert!(commit_dir.exists(), "Commit directory should be preserved");
+		assert!(result.is_ok(), "Remove operation should succeed");
+		assert!(
+			code_path.exists(),
+			"Code - Insiders.exe should be preserved"
+		);
+		assert!(
+			manifest_path.exists(),
+			"Code - Insiders.VisualElementsManifest.xml should be preserved"
+		);
+		assert!(
+			proxy_path.exists(),
+			"Sessions - Insiders.exe proxy should be preserved"
+		);
+		assert!(commit_dir.exists(), "Commit directory should be preserved");
 
-        assert!(!some_file.exists(), "Random files should be deleted");
-    }
+		assert!(!some_file.exists(), "Random files should be deleted");
+	}
 
-    #[test]
-    fn test_cleanup_dll_files_with_ffmpeg() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
-        let base_dir = temp_dir.path();
+	#[test]
+	fn test_cleanup_dll_files_with_ffmpeg() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
+		let base_dir = temp_dir.path();
 
-        // Create test structure
-        let code_path = base_dir.join("code.exe");
-        let ffmpeg_dll = base_dir.join("ffmpeg.dll");
-        let libcrypto_dll = base_dir.join("libcrypto.dll");
-        let libssl_dll = base_dir.join("libssl.dll");
-        let some_txt_file = base_dir.join("readme.txt");
+		// Create test structure
+		let code_path = base_dir.join("code.exe");
+		let ffmpeg_dll = base_dir.join("ffmpeg.dll");
+		let libcrypto_dll = base_dir.join("libcrypto.dll");
+		let libssl_dll = base_dir.join("libssl.dll");
+		let some_txt_file = base_dir.join("readme.txt");
 
-        // Create files
-        fs::write(&code_path, "executable content").unwrap();
-        fs::write(&ffmpeg_dll, "ffmpeg library").unwrap();
-        fs::write(&libcrypto_dll, "crypto library").unwrap();
-        fs::write(&libssl_dll, "ssl library").unwrap();
-        fs::write(&some_txt_file, "readme content").unwrap();
+		// Create files
+		fs::write(&code_path, "executable content").unwrap();
+		fs::write(&ffmpeg_dll, "ffmpeg library").unwrap();
+		fs::write(&libcrypto_dll, "crypto library").unwrap();
+		fs::write(&libssl_dll, "ssl library").unwrap();
+		fs::write(&some_txt_file, "readme content").unwrap();
 
-        // Perform cleanup
-        let result = cleanup_dll_files(&log, &code_path);
+		// Perform cleanup
+		let result = cleanup_dll_files(&log, &code_path);
 
-        assert!(result.is_ok(), "Cleanup operation should succeed");
-        assert!(code_path.exists(), "Code executable should be preserved");
-        assert!(some_txt_file.exists(), "Non-DLL files should be preserved");
-        assert!(!ffmpeg_dll.exists(), "ffmpeg.dll should be deleted");
-        assert!(!libcrypto_dll.exists(), "libcrypto.dll should be deleted");
-        assert!(!libssl_dll.exists(), "libssl.dll should be deleted");
-    }
+		assert!(result.is_ok(), "Cleanup operation should succeed");
+		assert!(code_path.exists(), "Code executable should be preserved");
+		assert!(some_txt_file.exists(), "Non-DLL files should be preserved");
+		assert!(!ffmpeg_dll.exists(), "ffmpeg.dll should be deleted");
+		assert!(!libcrypto_dll.exists(), "libcrypto.dll should be deleted");
+		assert!(!libssl_dll.exists(), "libssl.dll should be deleted");
+	}
 
-    #[test]
-    fn test_cleanup_dll_files_without_ffmpeg() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
-        let base_dir = temp_dir.path();
+	#[test]
+	fn test_cleanup_dll_files_without_ffmpeg() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
+		let base_dir = temp_dir.path();
 
-        // Create test structure without ffmpeg.dll
-        let code_path = base_dir.join("code.exe");
-        let some_dll = base_dir.join("somelibrary.dll");
+		// Create test structure without ffmpeg.dll
+		let code_path = base_dir.join("code.exe");
+		let some_dll = base_dir.join("somelibrary.dll");
 
-        // Create files
-        fs::write(&code_path, "executable content").unwrap();
-        fs::write(&some_dll, "some library").unwrap();
+		// Create files
+		fs::write(&code_path, "executable content").unwrap();
+		fs::write(&some_dll, "some library").unwrap();
 
-        // Perform cleanup
-        let result = cleanup_dll_files(&log, &code_path);
+		// Perform cleanup
+		let result = cleanup_dll_files(&log, &code_path);
 
-        assert!(result.is_ok(), "Cleanup operation should succeed");
-        assert!(code_path.exists(), "Code executable should be preserved");
-        assert!(some_dll.exists(), "DLL files should be preserved when ffmpeg.dll is not present");
-    }
+		assert!(result.is_ok(), "Cleanup operation should succeed");
+		assert!(code_path.exists(), "Code executable should be preserved");
+		assert!(
+			some_dll.exists(),
+			"DLL files should be preserved when ffmpeg.dll is not present"
+		);
+	}
 
-    #[test]
-    fn test_cleanup_dll_files_case_insensitive() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
-        let base_dir = temp_dir.path();
+	#[test]
+	fn test_cleanup_dll_files_case_insensitive() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
+		let base_dir = temp_dir.path();
 
-        // Create test structure with mixed case DLL extensions
-        let code_path = base_dir.join("code.exe");
-        let ffmpeg_dll = base_dir.join("ffmpeg.dll");
-        let upper_dll = base_dir.join("LIBRARY.DLL");
-        let mixed_dll = base_dir.join("another.Dll");
+		// Create test structure with mixed case DLL extensions
+		let code_path = base_dir.join("code.exe");
+		let ffmpeg_dll = base_dir.join("ffmpeg.dll");
+		let upper_dll = base_dir.join("LIBRARY.DLL");
+		let mixed_dll = base_dir.join("another.Dll");
 
-        // Create files
-        fs::write(&code_path, "executable content").unwrap();
-        fs::write(&ffmpeg_dll, "ffmpeg library").unwrap();
-        fs::write(&upper_dll, "upper case dll").unwrap();
-        fs::write(&mixed_dll, "mixed case dll").unwrap();
+		// Create files
+		fs::write(&code_path, "executable content").unwrap();
+		fs::write(&ffmpeg_dll, "ffmpeg library").unwrap();
+		fs::write(&upper_dll, "upper case dll").unwrap();
+		fs::write(&mixed_dll, "mixed case dll").unwrap();
 
-        // Perform cleanup
-        let result = cleanup_dll_files(&log, &code_path);
+		// Perform cleanup
+		let result = cleanup_dll_files(&log, &code_path);
 
-        assert!(result.is_ok(), "Cleanup operation should succeed");
-        assert!(!ffmpeg_dll.exists(), "ffmpeg.dll should be deleted");
-        assert!(!upper_dll.exists(), "LIBRARY.DLL should be deleted (case insensitive)");
-        assert!(!mixed_dll.exists(), "another.Dll should be deleted (case insensitive)");
-    }
+		assert!(result.is_ok(), "Cleanup operation should succeed");
+		assert!(!ffmpeg_dll.exists(), "ffmpeg.dll should be deleted");
+		assert!(
+			!upper_dll.exists(),
+			"LIBRARY.DLL should be deleted (case insensitive)"
+		);
+		assert!(
+			!mixed_dll.exists(),
+			"another.Dll should be deleted (case insensitive)"
+		);
+	}
 
-    #[test]
-    fn test_is_skippable_lock_error() {
-        assert!(is_skippable_lock_error(&std::io::Error::from_raw_os_error(5)));
-        assert!(is_skippable_lock_error(&std::io::Error::from_raw_os_error(32)));
-        assert!(is_skippable_lock_error(&std::io::Error::from_raw_os_error(33)));
+	#[test]
+	fn test_is_skippable_lock_error() {
+		assert!(is_skippable_lock_error(&std::io::Error::from_raw_os_error(
+			5
+		)));
+		assert!(is_skippable_lock_error(&std::io::Error::from_raw_os_error(
+			32
+		)));
+		assert!(is_skippable_lock_error(&std::io::Error::from_raw_os_error(
+			33
+		)));
 
-        // Unrelated failures must still be treated as hard errors.
-        assert!(!is_skippable_lock_error(&std::io::Error::from_raw_os_error(2)));
-        assert!(!is_skippable_lock_error(&std::io::Error::from_raw_os_error(145)));
-        assert!(!is_skippable_lock_error(&std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "no os error code"
-        )));
-    }
+		// Unrelated failures must still be treated as hard errors.
+		assert!(!is_skippable_lock_error(
+			&std::io::Error::from_raw_os_error(2)
+		));
+		assert!(!is_skippable_lock_error(
+			&std::io::Error::from_raw_os_error(145)
+		));
+		assert!(!is_skippable_lock_error(&std::io::Error::new(
+			std::io::ErrorKind::Other,
+			"no os error code"
+		)));
+	}
 
-    #[test]
-    fn test_remove_files_skips_locked_directory() {
-        let temp_dir = tempdir().unwrap();
-        let log = setup_test_logger();
-        let base_dir = temp_dir.path();
+	#[test]
+	fn test_remove_files_skips_locked_directory() {
+		let temp_dir = tempdir().unwrap();
+		let log = setup_test_logger();
+		let base_dir = temp_dir.path();
 
-        let code_path = base_dir.join("Code.exe");
-        let commit_dir = base_dir.join("abc123");
-        let stale_commit_dir = base_dir.join("def456");
-        let deletable_dir = base_dir.join("otherdir");
+		let code_path = base_dir.join("Code.exe");
+		let commit_dir = base_dir.join("abc123");
+		let stale_commit_dir = base_dir.join("def456");
+		let deletable_dir = base_dir.join("otherdir");
 
-        fs::write(&code_path, "executable content").unwrap();
-        fs::create_dir(&commit_dir).unwrap();
-        fs::write(commit_dir.join("keep.txt"), "keep").unwrap();
+		fs::write(&code_path, "executable content").unwrap();
+		fs::create_dir(&commit_dir).unwrap();
+		fs::write(commit_dir.join("keep.txt"), "keep").unwrap();
 
-        let appx_dir = stale_commit_dir.join("appx");
-        fs::create_dir_all(&appx_dir).unwrap();
-        let locked_file = appx_dir.join("code_explorer_command_x64.dll");
-        fs::write(&locked_file, "dll content").unwrap();
+		let appx_dir = stale_commit_dir.join("appx");
+		fs::create_dir_all(&appx_dir).unwrap();
+		let locked_file = appx_dir.join("code_explorer_command_x64.dll");
+		fs::write(&locked_file, "dll content").unwrap();
 
-        fs::create_dir(&deletable_dir).unwrap();
-        fs::write(deletable_dir.join("f.txt"), "content").unwrap();
+		fs::create_dir(&deletable_dir).unwrap();
+		fs::write(deletable_dir.join("f.txt"), "content").unwrap();
 
-        // Hold a non-shareable handle on the nested file so recursive deletion
-        // of the stale commit folder fails with a sharing violation.
-        let lock = crate::handle::FileHandle::new(&locked_file).expect("should open lock handle");
+		// Hold a non-shareable handle on the nested file so recursive deletion
+		// of the stale commit folder fails with a sharing violation.
+		let lock = crate::handle::FileHandle::new(&locked_file).expect("should open lock handle");
 
-        let result = remove_files(&log, &code_path, "abc123", None, None);
+		let result = remove_files(&log, &code_path, "abc123", None, None);
 
-        assert!(
-            result.is_ok(),
-            "gc should succeed even when a directory is locked: {:?}",
-            result.err()
-        );
-        assert!(code_path.exists(), "Code.exe should be preserved");
-        assert!(commit_dir.exists(), "current commit dir should be preserved");
-        assert!(
-            stale_commit_dir.exists(),
-            "locked stale dir should be skipped and left for the next gc"
-        );
-        assert!(locked_file.exists(), "locked file should remain on disk");
-        assert!(
-            !deletable_dir.exists(),
-            "unlocked directories should still be deleted"
-        );
+		assert!(
+			result.is_ok(),
+			"gc should succeed even when a directory is locked: {:?}",
+			result.err()
+		);
+		assert!(code_path.exists(), "Code.exe should be preserved");
+		assert!(
+			commit_dir.exists(),
+			"current commit dir should be preserved"
+		);
+		assert!(
+			stale_commit_dir.exists(),
+			"locked stale dir should be skipped and left for the next gc"
+		);
+		assert!(locked_file.exists(), "locked file should remain on disk");
+		assert!(
+			!deletable_dir.exists(),
+			"unlocked directories should still be deleted"
+		);
 
-        lock.close().unwrap();
-    }
+		lock.close().unwrap();
+	}
 }
 
 fn main() {
@@ -1465,11 +1619,18 @@ fn main() {
 	} else if args.len() >= 4 && args[1] == "--gc" {
 		let code_path = PathBuf::from(&args[2]);
 		let commit_to_preserve = &args[3];
-		let main_exe_name: Option<&str> = args.get(4).and_then(|s| if s.is_empty() { None } else { Some(s.as_str()) });
-		let proxy_exe_name: Option<&str> = args.get(5).and_then(|s| if s.is_empty() { None } else { Some(s.as_str()) });
+		let main_exe_name: Option<&str> = args
+			.get(4)
+			.and_then(|s| if s.is_empty() { None } else { Some(s.as_str()) });
+		let proxy_exe_name: Option<&str> = args
+			.get(5)
+			.and_then(|s| if s.is_empty() { None } else { Some(s.as_str()) });
 
 		if !code_path.is_absolute() {
-			eprintln!("Error: Code path needs to be absolute. Instead got: {}", args[2]);
+			eprintln!(
+				"Error: Code path needs to be absolute. Instead got: {}",
+				args[2]
+			);
 			std::process::exit(1);
 		}
 
@@ -1493,10 +1654,20 @@ fn main() {
 		info!(
 			log,
 			"Removing files from base directory of {:?}, preserving commit folder: {}, main_exe: {:?}, proxy_exe: {:?}",
-			code_path, commit_to_preserve, main_exe_name, proxy_exe_name
+			code_path,
+			commit_to_preserve,
+			main_exe_name,
+			proxy_exe_name
 		);
 
-		remove_files(&log, &code_path, commit_to_preserve, main_exe_name, proxy_exe_name).unwrap_or_else(|err| {
+		remove_files(
+			&log,
+			&code_path,
+			commit_to_preserve,
+			main_exe_name,
+			proxy_exe_name,
+		)
+		.unwrap_or_else(|err| {
 			eprintln!("Error during file removal: {}", err);
 			std::process::exit(1);
 		});
